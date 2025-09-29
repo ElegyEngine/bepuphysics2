@@ -20,10 +20,10 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
         public static void Test(ref SphereWide a, ref CapsuleWide b, ref Vector<float> speculativeMargin, ref Vector3Wide offsetB, ref QuaternionWide orientationB, int pairCount, out Convex1ContactManifoldWide manifold)
         {
             //The contact for a sphere-capsule pair is based on the closest point of the sphere center to the capsule internal line segment.
-            QuaternionWide.TransformUnitXY(orientationB, out var x, out var y);
-            Vector3Wide.Dot(y, offsetB, out var t);
+            QuaternionWide.TransformUnitXZ(orientationB, out var x, out var z); // TODO: Z-unit
+            Vector3Wide.Dot(z, offsetB, out var t);
             t = Vector.Min(b.HalfLength, Vector.Max(-b.HalfLength, -t));
-            Vector3Wide.Scale(y, t, out var capsuleLocalClosestPointOnLineSegment);
+            Vector3Wide.Scale(z, t, out var capsuleLocalClosestPointOnLineSegment);
 
             Vector3Wide.Add(offsetB, capsuleLocalClosestPointOnLineSegment, out var sphereToInternalSegment);
             Vector3Wide.Length(sphereToInternalSegment, out var internalDistance);
@@ -35,7 +35,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //We computed one such candidate earlier. Note that we could usually get away with choosing a completely arbitrary direction, but 
             //going through the extra effort to compute a true local horizontal direction avoids some nasty corner case surprises if a user is trying
             //to do something like manually resolving collisions or other query-based logic.
-            //A cheaper option would be to simply use the y axis as the normal. That's known to be suboptimal, but if we don't guarantee minimum penetration depth, that's totally fine.
+            //A cheaper option would be to simply use the z axis as the normal. That's known to be suboptimal, but if we don't guarantee minimum penetration depth, that's totally fine.
             //My guess is that computing x will be so cheap as to be irrelevant.
             Vector3Wide.ConditionalSelect(normalIsValid, manifold.Normal, x, out manifold.Normal);
             manifold.Depth = a.Radius + b.Radius - internalDistance;

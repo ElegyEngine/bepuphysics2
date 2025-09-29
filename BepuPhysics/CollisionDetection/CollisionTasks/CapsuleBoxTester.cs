@@ -19,7 +19,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             QuaternionWide.TransformWithoutOverlap(offsetB, toLocalB, out localOffsetA);
             Vector3Wide.Negate(ref localOffsetA);
             QuaternionWide.ConcatenateWithoutOverlap(orientationA, toLocalB, out var boxLocalOrientationA);
-            capsuleAxis = QuaternionWide.TransformUnitY(boxLocalOrientationA);
+            capsuleAxis = QuaternionWide.TransformUnitZ(boxLocalOrientationA); // TODO: Z-up
 
             //Get the closest point on the capsule segment to the box center to choose which edge to use.
             //(Pointless to test the other 9; they're guaranteed to be further away.)
@@ -264,9 +264,9 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Subtract(capsuleAxis, axisOffset, out var unprojectedAxis);
             Vector3Wide.Subtract(localOffsetA, centerOffset, out var unprojectedCenter);
             Vector2Wide tangentSpaceCenter, tangentSpaceAxis;
-            tangentSpaceAxis.X = Vector.ConditionalSelect(useX, unprojectedAxis.Y, unprojectedAxis.X);
-            tangentSpaceAxis.Y = Vector.ConditionalSelect(useZ, unprojectedAxis.Y, unprojectedAxis.Z);
-            tangentSpaceCenter.X = Vector.ConditionalSelect(useX, unprojectedCenter.Y, unprojectedCenter.X);
+            tangentSpaceAxis.X =   Vector.ConditionalSelect(useX,   unprojectedAxis.Y,   unprojectedAxis.X); // TODO: Z-up?
+            tangentSpaceAxis.Y =   Vector.ConditionalSelect(useZ,   unprojectedAxis.Y,   unprojectedAxis.Z);
+            tangentSpaceCenter.X = Vector.ConditionalSelect(useX, unprojectedCenter.Y, unprojectedCenter.X); // TODO: Z-up?
             tangentSpaceCenter.Y = Vector.ConditionalSelect(useZ, unprojectedCenter.Y, unprojectedCenter.Z);
             //Slightly boost the size of the face to avoid minor numerical issues that could block coplanar contacts.
             var epsilonScale = Vector.Min(Vector.Max(b.HalfWidth, Vector.Max(b.HalfHeight, b.HalfLength)), Vector.Max(a.HalfLength, a.Radius));

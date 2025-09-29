@@ -14,13 +14,13 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
         static void ProjectOntoCap(Vector3 capCenter, in Matrix3x3 cylinderOrientation, float inverseLocalNormalDotAY, Vector3 localNormal, Vector3 point, out Vector2 projected)
         {
             var pointToCapCenter = capCenter - point;
-            var t = Vector3.Dot(pointToCapCenter, cylinderOrientation.Y) * inverseLocalNormalDotAY;
+            var t = Vector3.Dot(pointToCapCenter, cylinderOrientation.Y) * inverseLocalNormalDotAY; // TODO: Z-up
             var projectionOffsetB = localNormal * t;
             var projectedPoint = point - projectionOffsetB;
             var capCenterToProjectedPoint = projectedPoint - capCenter;
             projected = new Vector2(
                 Vector3.Dot(capCenterToProjectedPoint, cylinderOrientation.X),
-                Vector3.Dot(capCenterToProjectedPoint, cylinderOrientation.Z));
+                Vector3.Dot(capCenterToProjectedPoint, cylinderOrientation.Z)); // TODO: Z-up
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,7 +93,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Scale(localOffsetA, Vector<float>.One / centerDistance, out var initialNormal);
             var useInitialFallback = Vector.LessThan(centerDistance, new Vector<float>(1e-8f));
             initialNormal.X = Vector.ConditionalSelect(useInitialFallback, Vector<float>.Zero, initialNormal.X);
-            initialNormal.Y = Vector.ConditionalSelect(useInitialFallback, Vector<float>.One, initialNormal.Y);
+            initialNormal.Y = Vector.ConditionalSelect(useInitialFallback, Vector<float>.One, initialNormal.Y); // TODO: Z-up
             initialNormal.Z = Vector.ConditionalSelect(useInitialFallback, Vector<float>.Zero, initialNormal.Z);
             var hullSupportFinder = default(ConvexHullSupportFinder);
             var cylinderSupportFinder = default(CylinderSupportFinder);
@@ -121,8 +121,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Scale(localNormal, depth, out var closestOnCylinderOffset);
             Vector3Wide.Subtract(closestOnHull, closestOnCylinderOffset, out var closestOnCylinder);
             Matrix3x3Wide.TransformByTransposedWithoutOverlap(localNormal, hullLocalCylinderOrientation, out var localNormalInA);
-            var inverseLocalNormalDotCapNormal = Vector<float>.One / localNormalInA.Y;
-            var useCap = Vector.GreaterThan(Vector.Abs(localNormalInA.Y), new Vector<float>(0.70710678118f));
+            var inverseLocalNormalDotCapNormal = Vector<float>.One / localNormalInA.Y; // TODO: Z-up
+            var useCap = Vector.GreaterThan(Vector.Abs(localNormalInA.Y), new Vector<float>(0.70710678118f)); // TODO: Z-up
             Unsafe.SkipInit(out Vector3Wide capCenter);
             Unsafe.SkipInit(out Vector2Wide interior0);
             Unsafe.SkipInit(out Vector2Wide interior1);
@@ -130,8 +130,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Unsafe.SkipInit(out Vector2Wide interior3);
             if (Vector.LessThanAny(Vector.AndNot(useCap, inactiveLanes), Vector<int>.Zero))
             {
-                var useBottom = Vector.GreaterThan(localNormalInA.Y, Vector<float>.Zero);
-                Vector3Wide.Scale(hullLocalCylinderOrientation.Y, Vector.ConditionalSelect(useBottom, -a.HalfLength, a.HalfLength), out capCenter);
+                var useBottom = Vector.GreaterThan(localNormalInA.Y, Vector<float>.Zero); // TODO: Z-up
+                Vector3Wide.Scale(hullLocalCylinderOrientation.Y, Vector.ConditionalSelect(useBottom, -a.HalfLength, a.HalfLength), out capCenter); // TODO: Z-up
                 Vector3Wide.Add(capCenter, localOffsetA, out capCenter);
 
                 Vector3Wide.Subtract(closestOnCylinder, localOffsetA, out var hullLocalCylinderToClosestOnCylinder);
@@ -144,8 +144,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             {
                 //If the contact is on the cylinder's side, use the closestOnHull-derived position rather than resampling the support function with the local normal to avoid numerical noise.
                 Vector3Wide.Subtract(closestOnCylinder, localOffsetA, out var cylinderToClosestOnCylinder);
-                Vector3Wide.Dot(cylinderToClosestOnCylinder, hullLocalCylinderOrientation.Y, out var cylinderLocalClosestOnCylinderY);
-                Vector3Wide.Scale(hullLocalCylinderOrientation.Y, cylinderLocalClosestOnCylinderY, out var cylinderEdgeCenterToClosestOnCylinder);
+                Vector3Wide.Dot(cylinderToClosestOnCylinder, hullLocalCylinderOrientation.Y, out var cylinderLocalClosestOnCylinderY); // TODO: Z-up
+                Vector3Wide.Scale(hullLocalCylinderOrientation.Y, cylinderLocalClosestOnCylinderY, out var cylinderEdgeCenterToClosestOnCylinder); // TODO: Z-up
                 Vector3Wide.Subtract(closestOnCylinder, cylinderEdgeCenterToClosestOnCylinder, out cylinderSideEdgeCenter);
             }
             int maximumCandidateCount = 4;
@@ -282,7 +282,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     //We have found all contacts for this hull slot. There may be more contacts than we want (4), so perform a reduction.
                     Vector3Wide.ReadSlot(ref offsetB, slotIndex, out var slotOffsetB);
                     Vector3Wide.ReadSlot(ref hullLocalCylinderOrientation.X, slotIndex, out var slotCylinderFaceX);
-                    Vector3Wide.ReadSlot(ref hullLocalCylinderOrientation.Z, slotIndex, out var slotCylinderFaceY);
+                    Vector3Wide.ReadSlot(ref hullLocalCylinderOrientation.Z, slotIndex, out var slotCylinderFaceY); // TODO: Z-up
                     Matrix3x3Wide.ReadSlot(ref hullOrientation, slotIndex, out var slotHullOrientation);
                     //Note that we're working on the cylinder's cap, so the parameters get flipped around. Gets pushed back onto the hull in the postpass.
                     ManifoldCandidateHelper.Reduce(candidates, candidateCount, slotHullFaceNormal, -1f / Vector3.Dot(slotLocalNormal, slotHullFaceNormal), hullFaceOrigin, slotCapCenter, slotCylinderFaceX, slotCylinderFaceY, epsilonScale[slotIndex], depthThreshold[slotIndex],
@@ -291,7 +291,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 else
                 {
                     //The side edge is the representative feature. Clip the cylinder's side edge against the hull edges; similar to capsule-hull. 
-                    Vector3Wide.ReadSlot(ref hullLocalCylinderOrientation.Y, slotIndex, out var slotCylinderEdgeAxis);
+                    Vector3Wide.ReadSlot(ref hullLocalCylinderOrientation.Y, slotIndex, out var slotCylinderEdgeAxis); // TODO: Z-up
                     Vector3Wide.ReadSlot(ref cylinderSideEdgeCenter, slotIndex, out var slotSideEdgeCenter);
                     var previousIndex = faceVertexIndices[faceVertexIndices.Length - 1];
                     Vector3Wide.ReadSlot(ref hull.Points[previousIndex.BundleIndex], previousIndex.InnerIndex, out var hullFaceOrigin);

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SELF_PATH=$(dirname $(realpath $0))
+SELF_PATH=./hlsl2glsl_temp
 
 SC_PATH=$SELF_PATH/ShaderConductor-linux-gcc8-x64-Release
 SCC=$SC_PATH/Bin/ShaderConductorCmd

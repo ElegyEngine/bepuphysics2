@@ -61,22 +61,22 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //Then, if there is sufficient tilt, replace the closest extreme point to the deepest point with the deepest point.
             var interpolationMin = new Vector<float>(0.9999f);
             var inverseInterpolationSpan = new Vector<float>(1f / 0.00005f);
-            var parallelWeight = Vector.Max(Vector<float>.Zero, Vector.Min(Vector<float>.One, (Vector.Abs(cylinderLocalNormal.Y) - interpolationMin) * inverseInterpolationSpan));
+            var parallelWeight = Vector.Max(Vector<float>.Zero, Vector.Min(Vector<float>.One, (Vector.Abs(cylinderLocalNormal.Z) - interpolationMin) * inverseInterpolationSpan)); // TODO: Z-up
             var deepestWeight = Vector<float>.One - parallelWeight;
-            var replaceX = Vector.GreaterThan(Vector.Abs(localClosestOnCylinder.X), Vector.Abs(localClosestOnCylinder.Z));
+            var replaceX = Vector.GreaterThan(Vector.Abs(localClosestOnCylinder.X), Vector.Abs(localClosestOnCylinder.Y)); // TODO: Z-up
             var replace0 = Vector.BitwiseAnd(Vector.GreaterThan(localClosestOnCylinder.X, Vector<float>.Zero), replaceX);
             var replace1 = Vector.BitwiseAnd(Vector.LessThanOrEqual(localClosestOnCylinder.X, Vector<float>.Zero), replaceX);
-            var replace2 = Vector.AndNot(Vector.GreaterThan(localClosestOnCylinder.Z, Vector<float>.Zero), replaceX);
-            var replace3 = Vector.AndNot(Vector.LessThanOrEqual(localClosestOnCylinder.Z, Vector<float>.Zero), replaceX);
+            var replace2 = Vector.AndNot(Vector.GreaterThan(localClosestOnCylinder.Y, Vector<float>.Zero), replaceX); // TODO: Z-up
+            var replace3 = Vector.AndNot(Vector.LessThanOrEqual(localClosestOnCylinder.Y, Vector<float>.Zero), replaceX); // TODO: Z-up
             var scaledRadius = parallelWeight * cylinder.Radius;
             interior0.X = Vector.ConditionalSelect(replace0, deepestWeight * localClosestOnCylinder.X + scaledRadius, cylinder.Radius);
-            interior0.Y = Vector.ConditionalSelect(replace0, deepestWeight * localClosestOnCylinder.Z, Vector<float>.Zero);
+            interior0.Y = Vector.ConditionalSelect(replace0, deepestWeight * localClosestOnCylinder.Y, Vector<float>.Zero); // TODO: Z-up
             interior1.X = Vector.ConditionalSelect(replace1, deepestWeight * localClosestOnCylinder.X - scaledRadius, -cylinder.Radius);
-            interior1.Y = Vector.ConditionalSelect(replace1, deepestWeight * localClosestOnCylinder.Z, Vector<float>.Zero);
+            interior1.Y = Vector.ConditionalSelect(replace1, deepestWeight * localClosestOnCylinder.Y, Vector<float>.Zero); // TODO: Z-up
             interior2.X = Vector.ConditionalSelect(replace2, deepestWeight * localClosestOnCylinder.X, Vector<float>.Zero);
-            interior2.Y = Vector.ConditionalSelect(replace2, deepestWeight * localClosestOnCylinder.Z + scaledRadius, cylinder.Radius);
+            interior2.Y = Vector.ConditionalSelect(replace2, deepestWeight * localClosestOnCylinder.Y + scaledRadius, cylinder.Radius); // TODO: Z-up
             interior3.X = Vector.ConditionalSelect(replace3, deepestWeight * localClosestOnCylinder.X, Vector<float>.Zero);
-            interior3.Y = Vector.ConditionalSelect(replace3, deepestWeight * localClosestOnCylinder.Z - scaledRadius, -cylinder.Radius);
+            interior3.Y = Vector.ConditionalSelect(replace3, deepestWeight * localClosestOnCylinder.Y - scaledRadius, -cylinder.Radius); // TODO: Z-up
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -115,8 +115,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Scale(localOffsetA, Vector<float>.One / length, out var localNormal);
             var useInitialSampleFallback = Vector.LessThan(length, new Vector<float>(1e-10f));
             localNormal.X = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.Zero, localNormal.X);
-            localNormal.Y = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.One, localNormal.Y);
-            localNormal.Z = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.Zero, localNormal.Z);
+            localNormal.Y = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.Zero, localNormal.Y);
+            localNormal.Z = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.One, localNormal.Z); // TODO: Z-up
             BoxSupportFinder boxSupportFinder = default;
             CylinderSupportFinder cylinderSupportFinder = default;
 
@@ -147,8 +147,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Abs(localNormalInA, out var absLocalNormalInA);
             var useX = Vector.BitwiseAnd(Vector.GreaterThan(absLocalNormalInA.X, absLocalNormalInA.Y), Vector.GreaterThan(absLocalNormalInA.X, absLocalNormalInA.Z));
             var useY = Vector.AndNot(Vector.GreaterThan(absLocalNormalInA.Y, absLocalNormalInA.Z), useX);
-            Vector3Wide.ConditionalSelect(useX, rA.X, rA.Z, out var boxFaceNormal);
-            Vector3Wide.ConditionalSelect(useY, rA.Y, boxFaceNormal, out boxFaceNormal);
+            Vector3Wide.ConditionalSelect(useX, rA.X, rA.Z, out var boxFaceNormal); // TODO: Z-up?
+            Vector3Wide.ConditionalSelect(useY, rA.Y, boxFaceNormal, out boxFaceNormal); // TODO: Z-up?
             Vector3Wide.ConditionalSelect(useX, rA.Y, rA.X, out var boxFaceX);
             Vector3Wide.ConditionalSelect(useY, rA.Z, boxFaceX, out boxFaceX);
             Vector3Wide.ConditionalSelect(useX, rA.Z, rA.Y, out var boxFaceY);
@@ -171,9 +171,9 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Add(boxFaceCenter, boxFaceXOffset, out var v11);
             Vector3Wide.Add(v11, boxFaceYOffset, out v11);
 
-            var capCenterBY = Vector.ConditionalSelect(Vector.LessThan(localNormal.Y, Vector<float>.Zero), -b.HalfLength, b.HalfLength);
+            var capCenterBZ = Vector.ConditionalSelect(Vector.LessThan(localNormal.Z, Vector<float>.Zero), -b.HalfLength, b.HalfLength); // TODO: Z-up
 
-            var useCap = Vector.AndNot(Vector.GreaterThan(Vector.Abs(localNormal.Y), new Vector<float>(0.70710678118f)), inactiveLanes);
+            var useCap = Vector.AndNot(Vector.GreaterThan(Vector.Abs(localNormal.Z), new Vector<float>(0.70710678118f)), inactiveLanes); // TODO: Z-up
 
             Vector3Wide.Dot(boxFaceNormal, localNormal, out var faceNormalDotLocalNormal);
             var inverseFaceNormalDotLocalNormal = Vector<float>.One / faceNormalDotLocalNormal;
@@ -187,15 +187,15 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 var candidateCount = Vector<int>.Zero;
 
                 //Project the edges down onto the cap's plane.
-                var inverseLocalNormalY = Vector<float>.One / localNormal.Y;
+                var inverseLocalNormalZ = Vector<float>.One / localNormal.Z; // TODO: Z-up
                 Vector3Wide.Subtract(boxFaceCenter, boxFaceXOffset, out var v01);
                 Vector3Wide.Add(v01, boxFaceYOffset, out v01);
                 Vector3Wide.Add(boxFaceCenter, boxFaceXOffset, out var v10);
                 Vector3Wide.Subtract(v10, boxFaceYOffset, out v10);
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, v00, out var p00);
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, v01, out var p01);
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, v10, out var p10);
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, v11, out var p11);
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, v00, out var p00);
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, v01, out var p01);
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, v10, out var p10);
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, v11, out var p11);
                 //Note that winding is important; we'll be choosing contacts based on the intervals. If two edges are unbounded, we only allow one contact to be generated.
                 //(Note that there is some room for microoptimization here. The projection was linear; edge0010 and edge1101 are the same but negated, likewise for 1011 and 0100. Opting for simplicity for now.)
                 Vector2Wide.Subtract(p10, p00, out var edge0010);
@@ -239,35 +239,35 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
                 Vector3Wide capCenterToBoxFaceCenter;
                 capCenterToBoxFaceCenter.X = boxFaceCenter.X;
-                capCenterToBoxFaceCenter.Y = boxFaceCenter.Y - capCenterBY;
-                capCenterToBoxFaceCenter.Z = boxFaceCenter.Z;
+                capCenterToBoxFaceCenter.Y = boxFaceCenter.Y;
+                capCenterToBoxFaceCenter.Z = boxFaceCenter.Z - capCenterBZ; // TODO: Z-up
                 Vector3Wide tangentBX, tangentBY;
                 tangentBX.X = Vector<float>.One;
                 tangentBX.Y = Vector<float>.Zero;
                 tangentBX.Z = Vector<float>.Zero;
                 tangentBY.X = Vector<float>.Zero;
-                tangentBY.Y = Vector<float>.Zero;
-                tangentBY.Z = Vector<float>.One;
+                tangentBY.Y = Vector<float>.One;
+                tangentBY.Z = Vector<float>.Zero; // TODO: Z-up?
                 ManifoldCandidateHelper.Reduce(ref candidates, candidateCount, 12, boxFaceNormal, inverseFaceNormalDotLocalNormal, capCenterToBoxFaceCenter, tangentBX, tangentBY, epsilonScale, depthThreshold, pairCount,
                     out var candidate0, out var candidate1, out var candidate2, out var candidate3,
                     out manifold.Contact0Exists, out manifold.Contact1Exists, out manifold.Contact2Exists, out manifold.Contact3Exists);
 
                 Vector3Wide localContact;
                 localContact.X = candidate0.X;
-                localContact.Y = capCenterBY;
-                localContact.Z = candidate0.Y;
+                localContact.Y = candidate0.Y;
+                localContact.Z = capCenterBZ; // TODO: Z-up
                 Vector3Wide.Add(localContact, localOffsetB, out var aToLocalContact);
                 Matrix3x3Wide.TransformWithoutOverlap(aToLocalContact, worldRB, out manifold.OffsetA0);
                 localContact.X = candidate1.X;
-                localContact.Z = candidate1.Y;
+                localContact.Y = candidate1.Y; // TODO: Z-up
                 Vector3Wide.Add(localContact, localOffsetB, out aToLocalContact);
                 Matrix3x3Wide.TransformWithoutOverlap(aToLocalContact, worldRB, out manifold.OffsetA1);
                 localContact.X = candidate2.X;
-                localContact.Z = candidate2.Y;
+                localContact.Y = candidate2.Y; // TODO: Z-up
                 Vector3Wide.Add(localContact, localOffsetB, out aToLocalContact);
                 Matrix3x3Wide.TransformWithoutOverlap(aToLocalContact, worldRB, out manifold.OffsetA2);
                 localContact.X = candidate3.X;
-                localContact.Z = candidate3.Y;
+                localContact.Y = candidate3.Y; // TODO: Z-up
                 Vector3Wide.Add(localContact, localOffsetB, out aToLocalContact);
                 Matrix3x3Wide.TransformWithoutOverlap(aToLocalContact, worldRB, out manifold.OffsetA3);
                 manifold.FeatureId0 = candidate0.FeatureId;
@@ -298,26 +298,26 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 //Center of the side line is just (closestOnB.X, 0, closestOnB.Z), sideLineDirection is just (0, 1, 0).
                 //t = dot(sideLineStart - pointOnFaceEdge, edgeNormal) / dot(sideLineDirection, edgeNormal)
                 var negativeOne = new Vector<float>(-1f);
-                var xDenominator = negativeOne / edgeNormalX.Y;
-                var yDenominator = negativeOne / edgeNormalY.Y;
+                var xDenominator = negativeOne / edgeNormalX.Z; // TODO: Z-up
+                var yDenominator = negativeOne / edgeNormalY.Z; // TODO: Z-up
                 Vector3Wide.LengthSquared(edgeNormalX, out var edgeNormalXLengthSquared);
                 Vector3Wide.LengthSquared(edgeNormalY, out var edgeNormalYLengthSquared);
                 var inverseEdgeNormalXLengthSquared = Vector<float>.One / edgeNormalXLengthSquared;
                 var inverseEdgeNormalYLengthSquared = Vector<float>.One / edgeNormalYLengthSquared;
                 Vector3Wide v00ToSideLine, v11ToSideLine;
                 v00ToSideLine.X = closestOnB.X - v00.X;
-                v00ToSideLine.Y = -v00.Y;
-                v00ToSideLine.Z = closestOnB.Z - v00.Z;
+                v00ToSideLine.Y = closestOnB.Y - v00.Y;
+                v00ToSideLine.Z = -v00.Z; // TODO: Z-up
                 v11ToSideLine.X = closestOnB.X - v11.X;
-                v11ToSideLine.Y = -v11.Y;
-                v11ToSideLine.Z = closestOnB.Z - v11.Z;
+                v11ToSideLine.Y = closestOnB.Y - v11.Y;
+                v11ToSideLine.Z = -v11.Z; // TODO: Z-up
 
                 Vector3Wide.Dot(edgeNormalX, v00ToSideLine, out var bottomNumerator);
                 Vector3Wide.Dot(edgeNormalY, v00ToSideLine, out var leftNumerator);
                 Vector3Wide.Dot(edgeNormalX, v11ToSideLine, out var topNumerator);
                 Vector3Wide.Dot(edgeNormalY, v11ToSideLine, out var rightNumerator);
-                var xInvalid = Vector.Equals(edgeNormalX.Y, Vector<float>.Zero);
-                var yInvalid = Vector.Equals(edgeNormalY.Y, Vector<float>.Zero);
+                var xInvalid = Vector.Equals(edgeNormalX.Z, Vector<float>.Zero); // TODO: Z-up
+                var yInvalid = Vector.Equals(edgeNormalY.Z, Vector<float>.Zero); // TODO: Z-up
                 var minValue = new Vector<float>(float.MinValue);
                 var maxValue = new Vector<float>(float.MaxValue);
                 var tX0 = bottomNumerator * xDenominator;
@@ -338,8 +338,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 const float upperThreshold = upperThresholdAngle * upperThresholdAngle;
                 var interpolationMin = new Vector<float>(upperThreshold);
                 var inverseInterpolationSpan = new Vector<float>(1f / (upperThreshold - lowerThreshold));
-                var unrestrictWeightX = Vector.Max(Vector<float>.Zero, Vector.Min(Vector<float>.One, (interpolationMin - edgeNormalX.Y * edgeNormalX.Y * inverseEdgeNormalXLengthSquared) * inverseInterpolationSpan));
-                var unrestrictWeightY = Vector.Max(Vector<float>.Zero, Vector.Min(Vector<float>.One, (interpolationMin - edgeNormalY.Y * edgeNormalY.Y * inverseEdgeNormalYLengthSquared) * inverseInterpolationSpan));
+                var unrestrictWeightX = Vector.Max(Vector<float>.Zero, Vector.Min(Vector<float>.One, (interpolationMin - edgeNormalX.Z * edgeNormalX.Z * inverseEdgeNormalXLengthSquared) * inverseInterpolationSpan)); // TODO: Z-up
+                var unrestrictWeightY = Vector.Max(Vector<float>.Zero, Vector.Min(Vector<float>.One, (interpolationMin - edgeNormalY.Z * edgeNormalY.Z * inverseEdgeNormalYLengthSquared) * inverseInterpolationSpan)); // TODO: Z-up
                 var regularWeightX = Vector<float>.One - unrestrictWeightX;
                 var regularWeightY = Vector<float>.One - unrestrictWeightY;
                 var negativeHalfLength = -b.HalfLength;
@@ -354,9 +354,9 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
                 Vector3Wide localContact0, localContact1;
                 localContact0.X = localContact1.X = closestOnB.X;
-                localContact0.Y = tMin;
-                localContact1.Y = tMax;
-                localContact0.Z = localContact1.Z = closestOnB.Z;
+                localContact0.Y = localContact1.Y = closestOnB.Y;
+                localContact0.Z = tMin; // TODO: Z-up
+                localContact1.Z = tMax; // TODO: Z-up
                 Matrix3x3Wide.TransformWithoutOverlap(localContact0, worldRB, out var contact0);
                 Matrix3x3Wide.TransformWithoutOverlap(localContact1, worldRB, out var contact1);
                 Vector3Wide.Add(contact0, offsetB, out contact0);

@@ -23,14 +23,14 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //Clamp the sphere position to the cylinder's volume.
             Matrix3x3Wide.TransformByTransposedWithoutOverlap(offsetB, orientationMatrixB, out var cylinderLocalOffsetB);
             Vector3Wide.Negate(cylinderLocalOffsetB, out cylinderLocalOffsetA);
-            horizontalOffsetLength = Vector.SquareRoot(cylinderLocalOffsetA.X * cylinderLocalOffsetA.X + cylinderLocalOffsetA.Z * cylinderLocalOffsetA.Z);
+            horizontalOffsetLength = Vector.SquareRoot(cylinderLocalOffsetA.X * cylinderLocalOffsetA.X + cylinderLocalOffsetA.Y * cylinderLocalOffsetA.Y); // TODO: Z-up
             inverseHorizontalOffsetLength = Vector<float>.One / horizontalOffsetLength;
             var horizontalClampMultiplier = b.Radius * inverseHorizontalOffsetLength;
             var horizontalClampRequired = Vector.GreaterThan(horizontalOffsetLength, b.Radius);
             Vector3Wide clampedSpherePositionLocalB;
             clampedSpherePositionLocalB.X = Vector.ConditionalSelect(horizontalClampRequired, cylinderLocalOffsetA.X * horizontalClampMultiplier, cylinderLocalOffsetA.X);
-            clampedSpherePositionLocalB.Y = Vector.Min(b.HalfLength, Vector.Max(-b.HalfLength, cylinderLocalOffsetA.Y));
-            clampedSpherePositionLocalB.Z = Vector.ConditionalSelect(horizontalClampRequired, cylinderLocalOffsetA.Z * horizontalClampMultiplier, cylinderLocalOffsetA.Z);
+            clampedSpherePositionLocalB.Y = Vector.ConditionalSelect(horizontalClampRequired, cylinderLocalOffsetA.Y * horizontalClampMultiplier, cylinderLocalOffsetA.Y);
+            clampedSpherePositionLocalB.Z = Vector.Min(b.HalfLength, Vector.Max(-b.HalfLength, cylinderLocalOffsetA.Z)); // TODO: Z-up
 
             Vector3Wide.Add(clampedSpherePositionLocalB, cylinderLocalOffsetB, out sphereToClosestLocalB);
             Matrix3x3Wide.TransformWithoutOverlap(sphereToClosestLocalB, orientationMatrixB, out sphereToClosest);
@@ -45,17 +45,17 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 out var sphereToContactLocalB, out manifold.OffsetA);
 
             //If the sphere center is inside the cylinder, then we must compute the fastest way out of the cylinder.
-            var absY = Vector.Abs(cylinderLocalOffsetA.Y);
-            var depthY = b.HalfLength - absY;
+            var absZ = Vector.Abs(cylinderLocalOffsetA.Z); // TODO: Z-up
+            var depthZ = b.HalfLength - absZ;
             var horizontalDepth = b.Radius - horizontalOffsetLength;
-            var useDepthY = Vector.LessThanOrEqual(depthY, horizontalDepth);
-            var useTopCapNormal = Vector.GreaterThan(cylinderLocalOffsetA.Y, Vector<float>.Zero);
+            var useDepthZ = Vector.LessThanOrEqual(depthZ, horizontalDepth);
+            var useTopCapNormal = Vector.GreaterThan(cylinderLocalOffsetA.Z, Vector<float>.Zero); // TODO: Z-up
             Vector3Wide localInternalNormal;
 
             var useHorizontalFallback = Vector.LessThanOrEqual(horizontalOffsetLength, b.Radius * new Vector<float>(1e-5f));
-            localInternalNormal.X = Vector.ConditionalSelect(useDepthY, Vector<float>.Zero, Vector.ConditionalSelect(useHorizontalFallback, Vector<float>.One, cylinderLocalOffsetA.X * inverseHorizontalOffsetLength));
-            localInternalNormal.Y = Vector.ConditionalSelect(useDepthY, Vector.ConditionalSelect(useTopCapNormal, Vector<float>.One, new Vector<float>(-1)), Vector<float>.Zero);
-            localInternalNormal.Z = Vector.ConditionalSelect(useDepthY, Vector<float>.Zero, Vector.ConditionalSelect(useHorizontalFallback, Vector<float>.Zero, cylinderLocalOffsetA.Z * inverseHorizontalOffsetLength));
+            localInternalNormal.X = Vector.ConditionalSelect(useDepthZ, Vector<float>.Zero, Vector.ConditionalSelect(useHorizontalFallback, Vector<float>.One, cylinderLocalOffsetA.X * inverseHorizontalOffsetLength));
+            localInternalNormal.Y = Vector.ConditionalSelect(useDepthZ, Vector<float>.Zero, Vector.ConditionalSelect(useHorizontalFallback, Vector<float>.Zero, cylinderLocalOffsetA.Y * inverseHorizontalOffsetLength));
+            localInternalNormal.Z = Vector.ConditionalSelect(useDepthZ, Vector.ConditionalSelect(useTopCapNormal, Vector<float>.One, new Vector<float>(-1)), Vector<float>.Zero); // TODO: Z-up
 
             Vector3Wide.Length(sphereToContactLocalB, out var contactDistanceFromSphereCenter);
             //Note negation; normal points from B to A by convention.
@@ -68,7 +68,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Matrix3x3Wide.TransformWithoutOverlap(localNormal, orientationMatrixB, out manifold.Normal);
 
             manifold.FeatureId = Vector<int>.Zero;
-            manifold.Depth = Vector.ConditionalSelect(useInternal, Vector.ConditionalSelect(useDepthY, depthY, horizontalDepth), -contactDistanceFromSphereCenter) + a.Radius;
+            manifold.Depth = Vector.ConditionalSelect(useInternal, Vector.ConditionalSelect(useDepthZ, depthZ, horizontalDepth), -contactDistanceFromSphereCenter) + a.Radius;
             manifold.ContactExists = Vector.GreaterThanOrEqual(manifold.Depth, -speculativeMargin);
         }
 

@@ -99,8 +99,8 @@ bool RayCastCylinder(float3 rayDirection, float3 cylinderPosition, float4 cylind
 	float3 d = mul(rayDirection, transpose(orientationMatrix));
 
 	//Note that we assume the ray direction is unit length. That helps with some numerical issues and simplifies some things.
-	float2 oh = float2(o.x, o.z);
-	float2 dh = float2(d.x, d.z);
+	float2 oh = float2(o.x, o.y);
+	float2 dh = float2(d.x, d.y);
 	float a = dot(dh, dh);
 	float b = dot(oh, dh);
 	float radiusSquared = radius * radius;
@@ -113,7 +113,7 @@ bool RayCastCylinder(float3 rayDirection, float3 cylinderPosition, float4 cylind
 		return false;
 	}
 
-	float discY;
+	float discZ;
 	if (a > 1e-8f)
 	{
 		float discriminant = b * b - a * c;
@@ -124,21 +124,21 @@ bool RayCastCylinder(float3 rayDirection, float3 cylinderPosition, float4 cylind
 		}
 		t = (-b - sqrt(discriminant)) / a;
 		t = max(t, 0);
-		hitLocation.y = o.y + d.y * t;
-		if (hitLocation.y < -halfLength)
+		hitLocation.z = o.z + d.z * t;
+		if (hitLocation.z < -halfLength)
 		{
-			discY = -halfLength;
+			discZ = -halfLength;
 		}
-		else if (hitLocation.y > halfLength)
+		else if (hitLocation.z > halfLength)
 		{
-			discY = halfLength;
+			discZ = halfLength;
 		}
 		else
 		{
 			//The hit is on the side of the cylinder.
-			hitLocation.xz = o.xz + d.xz * t;
-			hitNormal.xz = hitLocation.xz / radius;
-			hitNormal.y = 0;
+			hitLocation.xy = o.xy + d.xy * t;
+			hitNormal.xy = hitLocation.xy / radius;
+			hitNormal.z = 0;
 			hitNormal = mul(hitNormal, orientationMatrix);
 			hitLocation = mul(hitLocation, orientationMatrix) + cylinderPosition;
 			return true;
@@ -147,26 +147,26 @@ bool RayCastCylinder(float3 rayDirection, float3 cylinderPosition, float4 cylind
 	else
 	{
 		//The ray is parallel to the axis; the impact is on a disc or nothing.
-		discY = d.y > 0 ? -halfLength : halfLength;
+		discZ = d.z > 0 ? -halfLength : halfLength;
 	}
 
-	//Intersect the ray with the plane anchored at discY with normal equal to (0,1,0).
-	//t = dot(rayOrigin - (0,discY,0), (0,1,0)) / dot(rayDirection, (0,1,0)
-	if (o.y * d.y >= 0)
+	//Intersect the ray with the plane anchored at discZ with normal equal to (0,1,0).
+	//t = dot(rayOrigin - (0,discZ,0), (0,1,0)) / dot(rayDirection, (0,1,0)
+	if (o.z * d.z >= 0)
 	{
 		//The ray can only hit the disc if the direction points toward the cylinder.
 		return false;
 	}
-	t = (discY - o.y) / d.y;
-	hitLocation.xz = o.xz + d.xz * t;
-	if ((hitLocation.x * hitLocation.x + hitLocation.z * hitLocation.z) > radiusSquared)
+	t = (discZ - o.z) / d.z;
+	hitLocation.xy = o.xy + d.xy * t;
+	if ((hitLocation.x * hitLocation.x + hitLocation.y * hitLocation.y) > radiusSquared)
 	{
 		//The hit missed the cap.
 		return false;
 	}
-	hitLocation.y = discY;
+	hitLocation.z = discZ;
 	hitLocation = mul(hitLocation, orientationMatrix) + cylinderPosition;
-	hitNormal = d.y < 0 ? orientationMatrix[1] : -orientationMatrix[1];
+	hitNormal = d.z < 0 ? orientationMatrix[1] : -orientationMatrix[1];
 	return true;
 }
 

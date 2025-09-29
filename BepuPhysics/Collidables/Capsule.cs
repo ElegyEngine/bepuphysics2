@@ -49,7 +49,7 @@ namespace BepuPhysics.Collidables
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void ComputeBounds(Quaternion orientation, out Vector3 min, out Vector3 max)
         {
-            QuaternionEx.TransformUnitY(orientation, out var segmentOffset);
+            QuaternionEx.TransformUnitZ(orientation, out var segmentOffset); // TODO: Z-up
             max = Vector3.Abs(HalfLength * segmentOffset) + new Vector3(Radius);
             min = -max;
         }
@@ -71,8 +71,8 @@ namespace BepuPhysics.Collidables
             var tOffset = -Vector3.Dot(o, d) - (HalfLength + Radius);
             tOffset = float.Max(0, tOffset);
             o += d * tOffset;
-            var oh = new Vector3(o.X, 0, o.Z);
-            var dh = new Vector3(d.X, 0, d.Z);
+            var oh = o with { Z = 0 }; // TODO: Z-up
+            var dh = d with { Z = 0 }; // TODO: Z-up
             var a = Vector3.Dot(dh, dh);
             var b = Vector3.Dot(oh, dh);
             var radiusSquared = Radius * Radius;
@@ -85,7 +85,7 @@ namespace BepuPhysics.Collidables
                 return false;
             }
 
-            float sphereY;
+            float sphereZ;
             if (a > 1e-8f)
             {
                 var discriminant = b * b - a * c;
@@ -100,18 +100,18 @@ namespace BepuPhysics.Collidables
                 if (t < -tOffset)
                     t = -tOffset;
                 var cylinderHitLocation = o + d * t;
-                if (cylinderHitLocation.Y < -HalfLength)
+                if (cylinderHitLocation.Z < -HalfLength) // TODO: Z-up
                 {
-                    sphereY = -HalfLength;
+                    sphereZ = -HalfLength;
                 }
-                else if (cylinderHitLocation.Y > HalfLength)
+                else if (cylinderHitLocation.Z > HalfLength) // TODO: Z-up
                 {
-                    sphereY = HalfLength;
+                    sphereZ = HalfLength;
                 }
                 else
                 {
                     //The hit is on the cylindrical portion of the capsule.
-                    normal = new Vector3(cylinderHitLocation.X, 0, cylinderHitLocation.Z) / Radius;
+                    normal = cylinderHitLocation with { Z = 0 } / Radius; // TODO: Z-up
                     Matrix3x3.Transform(normal, orientation, out normal);
                     t = (t + tOffset) * inverseDLength;
                     return true;
@@ -122,12 +122,12 @@ namespace BepuPhysics.Collidables
                 //The ray is parallel to the axis; the impact is on a spherical cap or nothing.
                 //Note that the sphere cap is nudged forward to match the origin of the ray.
                 //This is just a simple way to capture the case where the ray starts inside the capsule, but too far to up/down to hit the cap chosen by d.Y.
-                sphereY = d.Y > 0 ?
-                    float.Max(float.Min(HalfLength, o.Y), -HalfLength) :
-                    float.Min(float.Max(-HalfLength, o.Y), HalfLength);
+                sphereZ = d.Z > 0 ? // TODO: Z-up
+                    float.Max(float.Min(HalfLength, o.Z), -HalfLength) :
+                    float.Min(float.Max(-HalfLength, o.Z), HalfLength);
             }
 
-            var os = o - new Vector3(0, sphereY, 0);
+            var os = o - new Vector3(0, 0, sphereZ); // TODO: Z-up
             var capB = Vector3.Dot(os, d);
             var capC = Vector3.Dot(os, os) - radiusSquared;
 
@@ -172,10 +172,10 @@ namespace BepuPhysics.Collidables
                 cylinderVolume * ((3f / 12f) * r2 + (4f / 12f) * h2) +
                 sphereVolume * ((2f / 5f) * r2 + (6f / 8f) * Radius * HalfLength + h2));
             inertia.InverseInertiaTensor.YX = 0;
-            inertia.InverseInertiaTensor.YY = inertia.InverseMass / (cylinderVolume * (1f / 2f) * r2 + sphereVolume * (2f / 5f) * r2);
+            inertia.InverseInertiaTensor.YY = inertia.InverseInertiaTensor.XX;
             inertia.InverseInertiaTensor.ZX = 0;
             inertia.InverseInertiaTensor.ZY = 0;
-            inertia.InverseInertiaTensor.ZZ = inertia.InverseInertiaTensor.XX;
+            inertia.InverseInertiaTensor.ZZ = inertia.InverseMass / (cylinderVolume * (1f / 2f) * r2 + sphereVolume * (2f / 5f) * r2); // TODO: Z-up
             return inertia;
         }
 
@@ -225,7 +225,7 @@ namespace BepuPhysics.Collidables
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetBounds(ref QuaternionWide orientations, int countInBundle, out Vector<float> maximumRadius, out Vector<float> maximumAngularExpansion, out Vector3Wide min, out Vector3Wide max)
         {
-            var segmentOffset = QuaternionWide.TransformUnitY(orientations);
+            var segmentOffset = QuaternionWide.TransformUnitZ(orientations); // TODO: Z-up
             Vector3Wide.Scale(segmentOffset, HalfLength, out segmentOffset);
             Vector3Wide.Abs(segmentOffset, out segmentOffset);
 
@@ -265,10 +265,10 @@ namespace BepuPhysics.Collidables
             var tOffset = Vector.Max(-od - (HalfLength + Radius), Vector<float>.Zero);
             Vector3Wide.Scale(d, tOffset, out var oOffset);
             Vector3Wide.Add(o, oOffset, out o);
-            var a = d.X * d.X + d.Z * d.Z;
-            var b = o.X * d.X + o.Z * d.Z;
+            var a = d.X * d.X + d.Y * d.Y; // TODO: Z-up
+            var b = o.X * d.X + o.Y * d.Y;
             var radiusSquared = Radius * Radius;
-            var c = (o.X * o.X + o.Z * o.Z) - radiusSquared;
+            var c = (o.X * o.X + o.Y * o.Y) - radiusSquared; // TODO: Z-up
 
             var rayIsntParallel = Vector.GreaterThan(a, new Vector<float>(1e-8f));
             var discriminant = b * b - a * c;
@@ -282,20 +282,20 @@ namespace BepuPhysics.Collidables
             Vector3Wide.Add(o, oOffset, out var cylinderHitLocation);
             var inverseRadius = Vector<float>.One / Radius;
             var cylinderNormalX = cylinderHitLocation.X * inverseRadius;
-            var cylinderNormalZ = cylinderHitLocation.Z * inverseRadius;
-            var useCylinder = Vector.BitwiseAnd(Vector.GreaterThanOrEqual(cylinderHitLocation.Y, -HalfLength), Vector.LessThanOrEqual(cylinderHitLocation.Y, HalfLength));
+            var cylinderNormalY = cylinderHitLocation.Y * inverseRadius; // TODO: Z-up
+            var useCylinder = Vector.BitwiseAnd(Vector.GreaterThanOrEqual(cylinderHitLocation.Z, -HalfLength), Vector.LessThanOrEqual(cylinderHitLocation.Z, HalfLength)); // TODO: Z-up
 
             //Intersect the spherical cap for any lane which ended up not using the cylinder.
             //Note that the sphere cap is nudged forward in the parallel case to match the origin of the ray.
             //This is just a simple way to capture the case where the ray starts inside the capsule, but too far to up/down to hit the cap chosen by d.Y.
             var negatedHalfLength = -HalfLength;
-            var parallelSphereY = Vector.ConditionalSelect(Vector.LessThan(d.Y, Vector<float>.Zero), 
-                Vector.Max(negatedHalfLength, Vector.Min(o.Y, HalfLength)), 
-                Vector.Min(HalfLength, Vector.Max(o.Y, negatedHalfLength)));
-            var nonParallelSphereY = Vector.ConditionalSelect(Vector.GreaterThan(cylinderHitLocation.Y, HalfLength), HalfLength, negatedHalfLength);
-            Vector<float> sphereY = Vector.ConditionalSelect(rayIsntParallel, nonParallelSphereY, parallelSphereY);
+            var parallelSphereZ = Vector.ConditionalSelect(Vector.LessThan(d.Z, Vector<float>.Zero), // TODO: Z-up
+                Vector.Max(negatedHalfLength, Vector.Min(o.Z, HalfLength)), // TODO: Z-up
+                Vector.Min(HalfLength, Vector.Max(o.Z, negatedHalfLength)));
+            var nonParallelSphereZ = Vector.ConditionalSelect(Vector.GreaterThan(cylinderHitLocation.Z, HalfLength), HalfLength, negatedHalfLength); // TODO: Z-up
+            Vector<float> sphereZ = Vector.ConditionalSelect(rayIsntParallel, nonParallelSphereZ, parallelSphereZ);
 
-            o.Y -= sphereY;
+            o.Z -= sphereZ; // TODO: Z-up
             Vector3Wide.Dot(o, d, out var capB);
             Vector3Wide.Dot(o, o, out var capC);
             capC -= radiusSquared;
@@ -313,8 +313,8 @@ namespace BepuPhysics.Collidables
             Vector3Wide.Scale(capHitLocation, inverseRadius, out var capNormal);
 
             normal.X = Vector.ConditionalSelect(useCylinder, cylinderNormalX, capNormal.X);
-            normal.Y = Vector.ConditionalSelect(useCylinder, Vector<float>.Zero, capNormal.Y);
-            normal.Z = Vector.ConditionalSelect(useCylinder, cylinderNormalZ, capNormal.Z);
+            normal.Y = Vector.ConditionalSelect(useCylinder, cylinderNormalY, capNormal.Y);
+            normal.Z = Vector.ConditionalSelect(useCylinder, Vector<float>.Zero, capNormal.Z); // TODO: Z-up
             t = (Vector.ConditionalSelect(useCylinder, cylinderT, capT) + tOffset) * inverseDLength;
             intersected = Vector.ConditionalSelect(useCylinder, cylinderIntersected, capIntersected);
             Matrix3x3Wide.Transform(normal, orientation, out normal);
@@ -336,9 +336,9 @@ namespace BepuPhysics.Collidables
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ComputeSupport(in CapsuleWide shape, in Matrix3x3Wide orientation, in Vector3Wide direction, in Vector<int> terminatedLanes, out Vector3Wide support)
         {
-            Vector3Wide.Scale(orientation.Y, shape.HalfLength, out support);
+            Vector3Wide.Scale(orientation.Z, shape.HalfLength, out support); // TODO: Z-up
             Vector3Wide.Negate(support, out var negated);
-            Vector3Wide.Dot(orientation.Y, direction, out var dot);
+            Vector3Wide.Dot(orientation.Z, direction, out var dot); // TODO: Z-up
             var shouldNegate = Vector.LessThan(dot, Vector<float>.Zero);
             Vector3Wide.ConditionalSelect(shouldNegate, negated, support, out support);
         }
@@ -346,8 +346,8 @@ namespace BepuPhysics.Collidables
         public void ComputeLocalSupport(in CapsuleWide shape, in Vector3Wide direction, in Vector<int> terminatedLanes, out Vector3Wide support)
         {
             support.X = Vector<float>.Zero;
-            support.Y = Vector.ConditionalSelect(Vector.LessThan(direction.Y, Vector<float>.Zero), -shape.HalfLength, shape.HalfLength);
-            support.Z = Vector<float>.Zero;
+            support.Y = Vector<float>.Zero;
+            support.Z = Vector.ConditionalSelect(Vector.LessThan(direction.Z, Vector<float>.Zero), -shape.HalfLength, shape.HalfLength); // TODO: Z-up
         }
     }
 }

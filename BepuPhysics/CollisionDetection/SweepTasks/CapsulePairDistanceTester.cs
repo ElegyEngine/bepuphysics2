@@ -13,8 +13,8 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
             //We want to minimize distance = ||(a + da * ta) - (b + db * tb)||.
             //Taking the derivative with respect to ta and doing some algebra (taking into account ||da|| == ||db|| == 1) to solve for ta yields:
             //ta = (da * (b - a) + (db * (a - b)) * (da * db)) / (1 - ((da * db) * (da * db))        
-            var da = QuaternionWide.TransformUnitY(orientationA);
-            var db = QuaternionWide.TransformUnitY(orientationB);
+            var da = QuaternionWide.TransformUnitZ(orientationA); // TODO: Z-up
+            var db = QuaternionWide.TransformUnitZ(orientationB); // TODO: Z-up
             Vector3Wide.Dot(da, offsetB, out var daOffsetB);
             Vector3Wide.Dot(db, offsetB, out var dbOffsetB);
             Vector3Wide.Dot(da, db, out var dadb);

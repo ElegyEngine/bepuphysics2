@@ -65,9 +65,9 @@ namespace BepuPhysics.Collidables
 
             //We want to compute 3 different sample directions: (1,0,0), (0,1,0), and (0,0,1). This is equivalent to simply accessing the component X Y or Z out of the axis.
             //Using this fact, we can compute all three directions together:
-            QuaternionEx.TransformUnitY(orientation, out var y);
-            var positiveDiscBoundOffsets = Vector3.SquareRoot(Vector3.Max(Vector3.Zero, Vector3.One - y * y)) * Radius;
-            max = Vector3.Abs(HalfLength * y) + positiveDiscBoundOffsets;
+            QuaternionEx.TransformUnitZ(orientation, out var z); // TODO: Z-up
+            var positiveDiscBoundOffsets = Vector3.SquareRoot(Vector3.Max(Vector3.Zero, Vector3.One - z * z)) * Radius; // TODO: Z-up
+            max = Vector3.Abs(HalfLength * z) + positiveDiscBoundOffsets; // TODO: Z-up
             //Cylinders are symmetric.
             min = -max;
         }
@@ -88,8 +88,8 @@ namespace BepuPhysics.Collidables
             //Move the origin up to the earliest possible impact time. This isn't necessary for math reasons, but it does help avoid some numerical problems.
             var tOffset = float.Max(0, -Vector3.Dot(o, d) - (HalfLength + Radius));
             o += d * tOffset;
-            var oh = new Vector3(o.X, 0, o.Z);
-            var dh = new Vector3(d.X, 0, d.Z);
+            var oh = o with { Z = 0 }; // TODO: Z-up
+            var dh = d with { Z = 0 }; // TODO: Z-up
             var a = Vector3.Dot(dh, dh);
             var b = Vector3.Dot(oh, dh);
             var radiusSquared = Radius * Radius;
@@ -116,18 +116,18 @@ namespace BepuPhysics.Collidables
                 t = (-b - MathF.Sqrt(discriminant)) / a;
                 t = float.Max(t, -tOffset);
                 var cylinderHitLocation = o + d * t;
-                if (cylinderHitLocation.Y < -HalfLength)
+                if (cylinderHitLocation.Z < -HalfLength) // TODO: Z-up
                 {
                     discY = -HalfLength;
                 }
-                else if (cylinderHitLocation.Y > HalfLength)
+                else if (cylinderHitLocation.Z > HalfLength) // TODO: Z-up
                 {
                     discY = HalfLength;
                 }
                 else
                 {
                     //The hit is on the side of the cylinder.
-                    normal = new Vector3(cylinderHitLocation.X, 0, cylinderHitLocation.Z) / Radius;
+                    normal = cylinderHitLocation with { Z = 0 } / Radius; // TODO: Z-up
                     Matrix3x3.Transform(normal, orientation, out normal);
                     t = (t + tOffset) * inverseDLength;
                     return true;
@@ -137,21 +137,21 @@ namespace BepuPhysics.Collidables
             {
                 //The ray is parallel to the axis; the impact is on a disc or nothing.
                 //If the ray is inside the cylinder, we want t = 0, so just set the discY to match the ray's origin in that case and it'll shake out like we want.
-                discY = float.MinMagnitude(d.Y > 0 ? -HalfLength : HalfLength, o.Y);
+                discY = float.MinMagnitude(d.Z > 0 ? -HalfLength : HalfLength, o.Z); // TODO: Z-up
             }
 
             //Intersect the ray with the plane anchored at discY with normal equal to (0,1,0).
             //t = dot(rayOrigin - (0,discY,0), (0,1,0)) / dot(rayDirection, (0,1,0)
-            if (float.Abs(o.Y) > HalfLength && o.Y * d.Y >= 0)
+            if (float.Abs(o.Z) > HalfLength && o.Z * d.Z >= 0) // TODO: Z-up
             {
                 //The ray can only hit the disc if the ray is inside the cylinder or the direction points toward the cylinder.
                 t = 0;
                 normal = new Vector3();
                 return false;
             }
-            t = (discY - o.Y) / d.Y;
+            t = (discY - o.Z) / d.Z; // TODO: Z-up
             var hitLocation = o + d * t;
-            if (hitLocation.X * hitLocation.X + hitLocation.Z * hitLocation.Z > radiusSquared)
+            if (hitLocation.X * hitLocation.X + hitLocation.Y * hitLocation.Y > radiusSquared) // TODO: Z-up
             {
                 //The hit missed the cap.
                 t = 0;
@@ -159,7 +159,7 @@ namespace BepuPhysics.Collidables
                 return false;
             }
             t = (t + tOffset) * inverseDLength;
-            normal = d.Y < 0 ? orientation.Y : -orientation.Y;
+            normal = d.Z < 0 ? orientation.Z : -orientation.Z; // TODO: Z-up
             return true;
         }
 
@@ -170,10 +170,10 @@ namespace BepuPhysics.Collidables
             float diagValue = inertia.InverseMass / ((4 * .0833333333f) * HalfLength * HalfLength + .25f * Radius * Radius);
             inertia.InverseInertiaTensor.XX = diagValue;
             inertia.InverseInertiaTensor.YX = 0;
-            inertia.InverseInertiaTensor.YY = 2f * inertia.InverseMass / (Radius * Radius);
+            inertia.InverseInertiaTensor.YY = diagValue;
             inertia.InverseInertiaTensor.ZX = 0;
             inertia.InverseInertiaTensor.ZY = 0;
-            inertia.InverseInertiaTensor.ZZ = diagValue;
+            inertia.InverseInertiaTensor.ZZ = 2f * inertia.InverseMass / (Radius * Radius); // TODO: Z-up
             return inertia;
         }
 
@@ -221,12 +221,12 @@ namespace BepuPhysics.Collidables
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetBounds(ref QuaternionWide orientations, int countInBundle, out Vector<float> maximumRadius, out Vector<float> maximumAngularExpansion, out Vector3Wide min, out Vector3Wide max)
         {
-            var y = QuaternionWide.TransformUnitY(orientations);
-            Vector3Wide.Multiply(y, y, out var yy);
-            Vector3Wide.Subtract(Vector<float>.One, yy, out var squared);
-            max.X = Vector.Abs(HalfLength * y.X) + Vector.SquareRoot(Vector.Max(Vector<float>.Zero, squared.X)) * Radius;
-            max.Y = Vector.Abs(HalfLength * y.Y) + Vector.SquareRoot(Vector.Max(Vector<float>.Zero, squared.Y)) * Radius;
-            max.Z = Vector.Abs(HalfLength * y.Z) + Vector.SquareRoot(Vector.Max(Vector<float>.Zero, squared.Z)) * Radius;
+            var z = QuaternionWide.TransformUnitZ(orientations); // TODO: Z-up
+            Vector3Wide.Multiply(z, z, out var zz); // TODO: Z-up
+            Vector3Wide.Subtract(Vector<float>.One, zz, out var squared); // TODO: Z-up
+            max.X = Vector.Abs(HalfLength * z.X) + Vector.SquareRoot(Vector.Max(Vector<float>.Zero, squared.X)) * Radius;
+            max.Y = Vector.Abs(HalfLength * z.Y) + Vector.SquareRoot(Vector.Max(Vector<float>.Zero, squared.Y)) * Radius;
+            max.Z = Vector.Abs(HalfLength * z.Z) + Vector.SquareRoot(Vector.Max(Vector<float>.Zero, squared.Z)) * Radius;
             //Cylinders are symmetric.
             Vector3Wide.Negate(max, out min);
 
@@ -261,10 +261,10 @@ namespace BepuPhysics.Collidables
             var tOffset = Vector.Max(-od - (HalfLength + Radius), Vector<float>.Zero);
             Vector3Wide.Scale(d, tOffset, out var oOffset);
             Vector3Wide.Add(o, oOffset, out o);
-            var a = d.X * d.X + d.Z * d.Z;
-            var b = o.X * d.X + o.Z * d.Z;
+            var a = d.X * d.X + d.Y * d.Y; // TODO: Z-up
+            var b = o.X * d.X + o.Y * d.Y;
             var radiusSquared = Radius * Radius;
-            var c = (o.X * o.X + o.Z * o.Z) - radiusSquared;
+            var c = (o.X * o.X + o.Y * o.Y) - radiusSquared; // TODO: Z-up
 
             var rayIsntParallel = Vector.GreaterThan(a, new Vector<float>(1e-8f));
             var discriminant = b * b - a * c;
@@ -278,33 +278,33 @@ namespace BepuPhysics.Collidables
             Vector3Wide.Add(o, oOffset, out var cylinderHitLocation);
             var inverseRadius = Vector<float>.One / Radius;
             var cylinderNormalX = cylinderHitLocation.X * inverseRadius;
-            var cylinderNormalZ = cylinderHitLocation.Z * inverseRadius;
-            var useCylinder = Vector.BitwiseAnd(Vector.GreaterThanOrEqual(cylinderHitLocation.Y, -HalfLength), Vector.LessThanOrEqual(cylinderHitLocation.Y, HalfLength));
+            var cylinderNormalY = cylinderHitLocation.Y * inverseRadius; // TODO: Z-up
+            var useCylinder = Vector.BitwiseAnd(Vector.GreaterThanOrEqual(cylinderHitLocation.Z, -HalfLength), Vector.LessThanOrEqual(cylinderHitLocation.Z, HalfLength)); // TODO: Z-up
 
             //Intersect the disc cap for any lane which ended up not using the cylinder.
-            Vector<float> discY = Vector.ConditionalSelect(
+            Vector<float> discZ = Vector.ConditionalSelect(
                 Vector.BitwiseOr(
-                    Vector.BitwiseAnd(Vector.GreaterThan(cylinderHitLocation.Y, HalfLength), rayIsntParallel),
-                    Vector.AndNot(Vector.LessThanOrEqual(d.Y, Vector<float>.Zero), rayIsntParallel)), HalfLength, -HalfLength);
+                    Vector.BitwiseAnd(Vector.GreaterThan(cylinderHitLocation.Z, HalfLength), rayIsntParallel), // TODO: Z-up
+                    Vector.AndNot(Vector.LessThanOrEqual(d.Z, Vector<float>.Zero), rayIsntParallel)), HalfLength, -HalfLength); // TODO: Z-up
 
             //Intersect the ray with the plane anchored at discY with normal equal to (0,1,0).
             //t = dot(rayOrigin - (0,discY,0), (0,1,0)) / dot(rayDirection, (0,1,0)
             //The ray can only hit the disc if the ray is inside the cylinder or the direction points toward the cylinder.
-            var withinDiscsOrRayPointsTowardDisc = Vector.BitwiseOr(Vector.LessThanOrEqual(Vector.Abs(o.Y), HalfLength), Vector.LessThan(o.Y * d.Y, Vector<float>.Zero));
+            var withinDiscsOrRayPointsTowardDisc = Vector.BitwiseOr(Vector.LessThanOrEqual(Vector.Abs(o.Z), HalfLength), Vector.LessThan(o.Z * d.Z, Vector<float>.Zero)); // TODO: Z-up
 
-            var capT = (discY - o.Y) / d.Y;
+            var capT = (discZ - o.Z) / d.Z; // TODO: Z-up
 
-            var hitLocationX = o.X + d.X * capT;
-            var hitLocationZ = o.Z + d.Z * capT;
+            var hitLocationX = o.X + d.X * capT; // TODO: Z-up
+            var hitLocationZ = o.Y + d.Y * capT;
             var capHitWithinRadius = Vector.LessThanOrEqual(hitLocationX * hitLocationX + hitLocationZ * hitLocationZ, radiusSquared);
             var hitCap = Vector.BitwiseAnd(withinDiscsOrRayPointsTowardDisc, capHitWithinRadius);
 
             t = (tOffset + Vector.ConditionalSelect(useCylinder, cylinderT, Vector.ConditionalSelect(hitCap, capT, Vector<float>.Zero))) * inverseDLength;
-            var capUsesUpwardFacingNormal = Vector.LessThan(d.Y, Vector<float>.Zero);
+            var capUsesUpwardFacingNormal = Vector.LessThan(d.Z, Vector<float>.Zero); // TODO: Z-up
             Vector3Wide localNormal;
             localNormal.X = Vector.ConditionalSelect(useCylinder, cylinderNormalX, Vector<float>.Zero);
-            localNormal.Y = Vector.ConditionalSelect(useCylinder, Vector<float>.Zero, Vector.ConditionalSelect(capUsesUpwardFacingNormal, Vector<float>.One, new Vector<float>(-1)));
-            localNormal.Z = Vector.ConditionalSelect(useCylinder, cylinderNormalZ, Vector<float>.Zero);
+            localNormal.Y = Vector.ConditionalSelect(useCylinder, cylinderNormalY, Vector<float>.Zero);
+            localNormal.Z = Vector.ConditionalSelect(useCylinder, Vector<float>.Zero, Vector.ConditionalSelect(capUsesUpwardFacingNormal, Vector<float>.One, new Vector<float>(-1))); // TODO: Z-up
             Matrix3x3Wide.TransformWithoutOverlap(localNormal, orientation, out normal);
             intersected = Vector.ConditionalSelect(useCylinder, cylinderIntersected, hitCap);
         }
@@ -335,14 +335,14 @@ namespace BepuPhysics.Collidables
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ComputeLocalSupport(in CylinderWide shape, in Vector3Wide direction, in Vector<int> terminatedLanes, out Vector3Wide support)
         {
-            support.Y = Vector.ConditionalSelect(Vector.GreaterThan(direction.Y, Vector<float>.Zero), shape.HalfLength, -shape.HalfLength);
+            support.Z = Vector.ConditionalSelect(Vector.GreaterThan(direction.Z, Vector<float>.Zero), shape.HalfLength, -shape.HalfLength); // TODO: Z-up
             //TODO: Using a hardware accelerated reciprocal sqrt approximation would be hugely beneficial here.
             //It would actually be meaningful to full frame time in simulations that rely on cylinders.
-            var horizontalLength = Vector.SquareRoot(direction.X * direction.X + direction.Z * direction.Z);
+            var horizontalLength = Vector.SquareRoot(direction.X * direction.X + direction.Y * direction.Y); // TODO: Z-up
             var normalizeScale = shape.Radius / horizontalLength;
             var useHorizontal = Vector.GreaterThan(horizontalLength, new Vector<float>(1e-8f));
-            support.X = Vector.ConditionalSelect(useHorizontal, direction.X * normalizeScale, Vector<float>.Zero);
-            support.Z = Vector.ConditionalSelect(useHorizontal, direction.Z * normalizeScale, Vector<float>.Zero);
+            support.X = Vector.ConditionalSelect(useHorizontal, direction.X * normalizeScale, Vector<float>.Zero); // TODO: Z-up
+            support.Y = Vector.ConditionalSelect(useHorizontal, direction.Y * normalizeScale, Vector<float>.Zero);
         }
     }
 }

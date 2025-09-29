@@ -87,6 +87,20 @@ float3 TransformUnitY(float4 rotation)
 	return float3(xy2 - wz2, 1.0 - xx2 - zz2, yz2 + wx2);
 }
 
+float3 TransformUnitZ(float4 rotation)
+{
+	float x2 = rotation.X + rotation.X;
+	float y2 = rotation.Y + rotation.Y;
+	float z2 = rotation.Z + rotation.Z;
+	float xx2 = rotation.X * x2;
+	float xz2 = rotation.X * z2;
+	float yy2 = rotation.Y * y2;
+	float yz2 = rotation.Y * z2;
+	float wx2 = rotation.W * x2;
+	float wy2 = rotation.W * y2;
+	return float3( xz2 + wy2, yz2 - wx2, 1f - xx2 - yy2 );
+}
+
 float3 AccumulateLight(float3 normal)
 {
 	//This uses a very simple ambient + diffuse + approximate hemispheric sky scheme.

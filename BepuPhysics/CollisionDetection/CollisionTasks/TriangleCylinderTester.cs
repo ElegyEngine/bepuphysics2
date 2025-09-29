@@ -126,8 +126,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Scale(localTriangleCenter, Vector<float>.One / length, out var initialNormal);
             var useInitialSampleFallback = Vector.LessThan(length, new Vector<float>(1e-10f));
             initialNormal.X = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.Zero, initialNormal.X);
-            initialNormal.Y = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.One, initialNormal.Y);
-            initialNormal.Z = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.Zero, initialNormal.Z);
+            initialNormal.Y = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.Zero, initialNormal.Y);
+            initialNormal.Z = Vector.ConditionalSelect(useInitialSampleFallback, Vector<float>.One, initialNormal.Z); // TODO: Z-up
 
             Vector3Wide.Subtract(triangle.B, triangle.A, out var triangleAB);
             Vector3Wide.Subtract(triangle.C, triangle.B, out var triangleBC);
@@ -228,9 +228,9 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             var useTriangleEdgeCase = Vector.AndNot(Vector.LessThan(Vector.Abs(faceNormalADotNormal), new Vector<float>(0.2f)), inactiveLanes);
 
             //We generate contacts according to the dominant features along the collision normal.
-            var capCenterBY = Vector.ConditionalSelect(Vector.LessThan(localNormal.Y, Vector<float>.Zero), -b.HalfLength, b.HalfLength);
+            var capCenterBZ = Vector.ConditionalSelect(Vector.LessThan(localNormal.Z, Vector<float>.Zero), -b.HalfLength, b.HalfLength); // TODO: Z-up
 
-            var useCap = Vector.AndNot(Vector.GreaterThan(Vector.Abs(localNormal.Y), new Vector<float>(0.70710678118f)), inactiveLanes);
+            var useCap = Vector.AndNot(Vector.GreaterThan(Vector.Abs(localNormal.Z), new Vector<float>(0.70710678118f)), inactiveLanes); // TODO: Z-up
 
             Unsafe.SkipInit(out Vector3Wide localOffsetB0);
             Unsafe.SkipInit(out Vector3Wide localOffsetB1);
@@ -245,10 +245,10 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 var candidateCount = Vector<int>.Zero;
 
                 //Project the edges down onto the cap's plane.
-                var inverseLocalNormalY = Vector<float>.One / localNormal.Y;
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, triangleA, out var pA);
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, triangleB, out var pB);
-                CylinderPairTester.ProjectOntoCapB(capCenterBY, inverseLocalNormalY, localNormal, triangleC, out var pC);
+                var inverseLocalNormalZ = Vector<float>.One / localNormal.Z; // TODO: Z-up
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, triangleA, out var pA);
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, triangleB, out var pB);
+                CylinderPairTester.ProjectOntoCapB(capCenterBZ, inverseLocalNormalZ, localNormal, triangleC, out var pC);
                 Vector2Wide.Subtract(pB, pA, out var projectedAB);
                 Vector2Wide.Subtract(pC, pB, out var projectedBC);
                 Vector2Wide.Subtract(pA, pC, out var projectedCA);
@@ -298,35 +298,35 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     //pointOnCylinder = (interiorOnCylinderN.X, y, interiorOnCylinderN.Y)
                     //t = dot(localTriangleCenter - pointOnCylinder, triangleNormal) / dot(triangleNormal, localNormal)
                     var inverseDenominator = new Vector<float>(-1f) / faceNormalADotNormal;
-                    var yOffset = localTriangleCenter.Y - capCenterBY;
+                    var zOffset = localTriangleCenter.Z - capCenterBZ; // TODO: Z-up
                     var xOffset0 = localTriangleCenter.X - interiorOnCylinder0.X;
-                    var zOffset0 = localTriangleCenter.Z - interiorOnCylinder0.Y;
+                    var yOffset0 = localTriangleCenter.Y - interiorOnCylinder0.Y; // TODO: Z-up
                     var xOffset1 = localTriangleCenter.X - interiorOnCylinder1.X;
-                    var zOffset1 = localTriangleCenter.Z - interiorOnCylinder1.Y;
+                    var yOffset1 = localTriangleCenter.Y - interiorOnCylinder1.Y; // TODO: Z-up
                     var xOffset2 = localTriangleCenter.X - interiorOnCylinder2.X;
-                    var zOffset2 = localTriangleCenter.Z - interiorOnCylinder2.Y;
+                    var yOffset2 = localTriangleCenter.Y - interiorOnCylinder2.Y; // TODO: Z-up
                     var xOffset3 = localTriangleCenter.X - interiorOnCylinder3.X;
-                    var zOffset3 = localTriangleCenter.Z - interiorOnCylinder3.Y;
-                    var t0 = (xOffset0 * localNormal.X + yOffset * localNormal.Y + zOffset0 * localNormal.Z) * inverseDenominator;
-                    var t1 = (xOffset1 * localNormal.X + yOffset * localNormal.Y + zOffset1 * localNormal.Z) * inverseDenominator;
-                    var t2 = (xOffset2 * localNormal.X + yOffset * localNormal.Y + zOffset2 * localNormal.Z) * inverseDenominator;
-                    var t3 = (xOffset3 * localNormal.X + yOffset * localNormal.Y + zOffset3 * localNormal.Z) * inverseDenominator;
+                    var yOffset3 = localTriangleCenter.Y - interiorOnCylinder3.Y; // TODO: Z-up
+                    var t0 = (xOffset0 * localNormal.X + yOffset0 * localNormal.Y + zOffset * localNormal.Z) * inverseDenominator;
+                    var t1 = (xOffset1 * localNormal.X + yOffset1 * localNormal.Y + zOffset * localNormal.Z) * inverseDenominator;
+                    var t2 = (xOffset2 * localNormal.X + yOffset2 * localNormal.Y + zOffset * localNormal.Z) * inverseDenominator;
+                    var t3 = (xOffset3 * localNormal.X + yOffset3 * localNormal.Y + zOffset * localNormal.Z) * inverseDenominator;
                     //Projecting into the triangle's *tangent space* directly.
                     //pointInTriangleTangentSpace = (dot(pointOnCylinder + localNormal * t, tangentX), dot(pointOnCylinder + localNormal * t, tangentY))
                     Vector2Wide tangentLocalNormal;
                     Vector3Wide.Dot(localNormal, triangleTangentX, out tangentLocalNormal.X);
                     Vector3Wide.Dot(localNormal, triangleTangentY, out tangentLocalNormal.Y);
                     Vector2Wide interior0, interior1, interior2, interior3;
-                    var yOnTangentX = yOffset * triangleTangentX.Y;
-                    var yOnTangentY = yOffset * triangleTangentY.Y;
-                    interior0.X = tangentLocalNormal.X * t0 - xOffset0 * triangleTangentX.X - yOnTangentX - zOffset0 * triangleTangentX.Z;
-                    interior0.Y = tangentLocalNormal.Y * t0 - xOffset0 * triangleTangentY.X - yOnTangentY - zOffset0 * triangleTangentY.Z;
-                    interior1.X = tangentLocalNormal.X * t1 - xOffset1 * triangleTangentX.X - yOnTangentX - zOffset1 * triangleTangentX.Z;
-                    interior1.Y = tangentLocalNormal.Y * t1 - xOffset1 * triangleTangentY.X - yOnTangentY - zOffset1 * triangleTangentY.Z;
-                    interior2.X = tangentLocalNormal.X * t2 - xOffset2 * triangleTangentX.X - yOnTangentX - zOffset2 * triangleTangentX.Z;
-                    interior2.Y = tangentLocalNormal.Y * t2 - xOffset2 * triangleTangentY.X - yOnTangentY - zOffset2 * triangleTangentY.Z;
-                    interior3.X = tangentLocalNormal.X * t3 - xOffset3 * triangleTangentX.X - yOnTangentX - zOffset3 * triangleTangentX.Z;
-                    interior3.Y = tangentLocalNormal.Y * t3 - xOffset3 * triangleTangentY.X - yOnTangentY - zOffset3 * triangleTangentY.Z;
+                    var zOnTangentX = zOffset * triangleTangentX.Z; // TODO: Z-up
+                    var zOnTangentY = zOffset * triangleTangentY.Z;
+                    interior0.X = tangentLocalNormal.X * t0 - xOffset0 * triangleTangentX.X - zOnTangentX - yOffset0 * triangleTangentX.Y;
+                    interior0.Y = tangentLocalNormal.Y * t0 - xOffset0 * triangleTangentY.X - zOnTangentY - yOffset0 * triangleTangentY.Y;
+                    interior1.X = tangentLocalNormal.X * t1 - xOffset1 * triangleTangentX.X - zOnTangentX - yOffset1 * triangleTangentX.Y;
+                    interior1.Y = tangentLocalNormal.Y * t1 - xOffset1 * triangleTangentY.X - zOnTangentY - yOffset1 * triangleTangentY.Y;
+                    interior2.X = tangentLocalNormal.X * t2 - xOffset2 * triangleTangentX.X - zOnTangentX - yOffset2 * triangleTangentX.Y;
+                    interior2.Y = tangentLocalNormal.Y * t2 - xOffset2 * triangleTangentY.X - zOnTangentY - yOffset2 * triangleTangentY.Y;
+                    interior3.X = tangentLocalNormal.X * t3 - xOffset3 * triangleTangentX.X - zOnTangentX - yOffset3 * triangleTangentX.Y;
+                    interior3.Y = tangentLocalNormal.Y * t3 - xOffset3 * triangleTangentY.X - zOnTangentY - yOffset3 * triangleTangentY.Y;
 
                     //Test the four points against the edge plane. Note that signs depend on the orientation of the cylinder.
                     TryAddInteriorPoint(interior0, new Vector<int>(8), tangentA, tangentAB, tangentB, tangentBC, tangentC, tangentCA, useCapTriangleFace, ref candidates, ref candidateCount, pairCount);
@@ -337,13 +337,13 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
                 Vector3Wide capNormal;
                 capNormal.X = Vector<float>.Zero;
-                capNormal.Y = Vector.ConditionalSelect(Vector.LessThan(localNormal.Y, Vector<float>.Zero), Vector<float>.One, new Vector<float>(-1));
-                capNormal.Z = Vector<float>.Zero;
+                capNormal.Y = Vector<float>.Zero;
+                capNormal.Z = Vector.ConditionalSelect(Vector.LessThan(localNormal.Z, Vector<float>.Zero), Vector<float>.One, new Vector<float>(-1)); // TODO: Z-up
                 Vector3Wide triangleCenterToCapCenter;
                 triangleCenterToCapCenter.X = -localTriangleCenter.X;
-                triangleCenterToCapCenter.Y = capCenterBY - localTriangleCenter.Y;
-                triangleCenterToCapCenter.Z = -localTriangleCenter.Z;
-                ManifoldCandidateHelper.Reduce(ref candidates, candidateCount, maximumContactCountInBundle, capNormal, -capNormal.Y / localNormal.Y, triangleCenterToCapCenter, triangleTangentX, triangleTangentY, epsilonScale, depthThreshold, pairCount,
+                triangleCenterToCapCenter.Y = -localTriangleCenter.Y;
+                triangleCenterToCapCenter.Z = capCenterBZ - localTriangleCenter.Z; // TODO: Z-up
+                ManifoldCandidateHelper.Reduce(ref candidates, candidateCount, maximumContactCountInBundle, capNormal, -capNormal.Z / localNormal.Z, triangleCenterToCapCenter, triangleTangentX, triangleTangentY, epsilonScale, depthThreshold, pairCount, // TODO: Z-up
                     out var candidate0, out var candidate1, out var candidate2, out var candidate3,
                     out manifold.Contact0Exists, out manifold.Contact1Exists, out manifold.Contact2Exists, out manifold.Contact3Exists);
 
@@ -409,10 +409,10 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 //sinAngle^2 * ||dominantEdgeOffset||^2 * ||(-localNormal.Z, 0, localNormal.X)||^2 = dot(dominantEdgeOffset, (-localNormal.Z, 0, localNormal.X))^2         
                 const float lowerSinAngleThreshold = 0.01f;
                 const float upperSinAngleThreshold = 0.02f;
-                var dominantEdgeDotHorizontalNormal = dominantEdgeOffset.Z * localNormal.X - dominantEdgeOffset.X * localNormal.Z;
+                var dominantEdgeDotHorizontalNormal = dominantEdgeOffset.Y * localNormal.X - dominantEdgeOffset.X * localNormal.Y; // TODO: Z-up
                 var dominantEdgeDotHorizontalNormalSquared = dominantEdgeDotHorizontalNormal * dominantEdgeDotHorizontalNormal;
                 Vector3Wide.LengthSquared(dominantEdgeOffset, out var dominantEdgeLengthSquared);
-                var horizontalNormalLengthSquared = localNormal.X * localNormal.X + localNormal.Z * localNormal.Z;
+                var horizontalNormalLengthSquared = localNormal.X * localNormal.X + localNormal.Y * localNormal.Y; // TODO: Z-up
                 var interpolationScale = dominantEdgeLengthSquared * horizontalNormalLengthSquared;
                 var interpolationMin = new Vector<float>(lowerSinAngleThreshold * lowerSinAngleThreshold);
                 var inverseInterpolationSpan = new Vector<float>(1f / (upperSinAngleThreshold * upperSinAngleThreshold - lowerSinAngleThreshold * lowerSinAngleThreshold));
@@ -426,8 +426,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     //For the single contact case, all we need is to test the triangle edge versus the plane formed by the cylinder side edge and the local normal.
                     //(0,1,0) x localNormal = (-localNormal.Z, 0, localNormal.X)
                     var cylinderEdgeToDominantEdgeStartX = dominantEdgeStart.X - closestOnB.X;
-                    var cylinderEdgeToDominantEdgeStartZ = dominantEdgeStart.Z - closestOnB.Z;
-                    var numerator = cylinderEdgeToDominantEdgeStartX * localNormal.Z - cylinderEdgeToDominantEdgeStartZ * localNormal.X;
+                    var cylinderEdgeToDominantEdgeStartY = dominantEdgeStart.Y - closestOnB.Y; // TODO: Z-up
+                    var numerator = cylinderEdgeToDominantEdgeStartX * localNormal.Y - cylinderEdgeToDominantEdgeStartY * localNormal.X;
                     var edgeT = numerator / dominantEdgeDotHorizontalNormal;
 
                     //As the unrestrict weight increases, expand the interval on the triangle edge until it covers the entire cylinder edge.
@@ -435,8 +435,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     //tCenter = dot(cylinderSideEdgeCenter - dominantEdgeStart, dominantEdgeOffset / ||dominantEdgeOffset||^2)
                     //tMax = tCenter + cylinder.HalfLength * dominantEdgeOffset.Y / ||dominantEdgeOffset||^2
                     var inverseEdgeOffsetLengthSquared = Vector<float>.One / dominantEdgeLengthSquared;
-                    var tCenter = -(cylinderEdgeToDominantEdgeStartX * dominantEdgeOffset.X + dominantEdgeStart.Y * dominantEdgeOffset.Y + cylinderEdgeToDominantEdgeStartZ * dominantEdgeOffset.Z) * inverseEdgeOffsetLengthSquared;
-                    var projectedExtentOffset = b.HalfLength * Vector.Abs(dominantEdgeOffset.Y) * inverseEdgeOffsetLengthSquared;
+                    var tCenter = -(cylinderEdgeToDominantEdgeStartX * dominantEdgeOffset.X + dominantEdgeStart.Z * dominantEdgeOffset.Z + cylinderEdgeToDominantEdgeStartY * dominantEdgeOffset.Y) * inverseEdgeOffsetLengthSquared; // TODO: Verify Z-up
+                    var projectedExtentOffset = b.HalfLength * Vector.Abs(dominantEdgeOffset.Z) * inverseEdgeOffsetLengthSquared; // TODO: Z-up
                     cylinderTMin = tCenter - projectedExtentOffset;
                     cylinderTMax = tCenter + projectedExtentOffset;
                     //Note that the edgeT value is ignored once the denominator is small enough. Avoids division by zero propagation.
@@ -454,8 +454,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     //dot(horizontalLocalNormal, localNormal) == localNormal.X^2 + localNormal.Z^2
                     //depth = (dot(dominantEdgeStart - cylinderEdgeCenter, horizontalLocalNormal) + t * (dominantEdgeOffset, horizontalLocalNormal)) / (localNormal.X^2 + localNormal.Z^2)
                     var inverseDepthDenominator = new Vector<float>(-1f) / horizontalNormalLengthSquared;
-                    var depthBase = (cylinderEdgeToDominantEdgeStartX * localNormal.X + cylinderEdgeToDominantEdgeStartZ * localNormal.Z) * inverseDepthDenominator;
-                    var tDepthScale = (dominantEdgeOffset.X * localNormal.X + dominantEdgeOffset.Z * localNormal.Z) * inverseDepthDenominator;
+                    var depthBase = (cylinderEdgeToDominantEdgeStartX * localNormal.X + cylinderEdgeToDominantEdgeStartY * localNormal.Y) * inverseDepthDenominator; // TODO: Z-up
+                    var tDepthScale = (dominantEdgeOffset.X * localNormal.X + dominantEdgeOffset.Y * localNormal.Y) * inverseDepthDenominator; // TODO: Z-up
                     depthTMin = depthBase + tDepthScale * cylinderTMin;
                     depthTMax = depthBase + tDepthScale * cylinderTMax;
 
@@ -476,16 +476,16 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     //tCenterToTriangleSurface = dot(localTriangleCenter - (closestOnB.X, 0, closestOnB.Z), triangleNormal) / dot(localNormal, triangleNormal)
                     //Note that we *could* use the computed depth for the closest point here, but that would allow some numerical error to compound and it only saves us a single dot product.
                     var inverseDenominator = Vector<float>.One / faceNormalADotNormal;
-                    var xzContribution = (localTriangleCenter.X - closestOnB.X) * triangleNormal.X + (localTriangleCenter.Z - closestOnB.Z) * triangleNormal.Z;
-                    var tMinToTriangle = (xzContribution + (localTriangleCenter.Y + b.HalfLength) * triangleNormal.Y) * inverseDenominator;
-                    var tMaxToTriangle = (xzContribution + (localTriangleCenter.Y - b.HalfLength) * triangleNormal.Y) * inverseDenominator;
+                    var xyContribution = (localTriangleCenter.X - closestOnB.X) * triangleNormal.X + (localTriangleCenter.Y - closestOnB.Y) * triangleNormal.Y; // TODO: Z-up
+                    var tMinToTriangle = (xyContribution + (localTriangleCenter.Z + b.HalfLength) * triangleNormal.Z) * inverseDenominator; // TODO: Z-up
+                    var tMaxToTriangle = (xyContribution + (localTriangleCenter.Z - b.HalfLength) * triangleNormal.Z) * inverseDenominator; // TODO: Z-up
                     Vector3Wide minOnTriangle, maxOnTriangle;
                     minOnTriangle.X = tMinToTriangle * localNormal.X + closestOnB.X;
-                    minOnTriangle.Y = tMinToTriangle * localNormal.Y - b.HalfLength;
-                    minOnTriangle.Z = tMinToTriangle * localNormal.Z + closestOnB.Z;
+                    minOnTriangle.Y = tMinToTriangle * localNormal.Y + closestOnB.Y;
+                    minOnTriangle.Z = tMinToTriangle * localNormal.Z - b.HalfLength; // TODO: Z-up
                     maxOnTriangle.X = tMaxToTriangle * localNormal.X + closestOnB.X;
-                    maxOnTriangle.Y = tMaxToTriangle * localNormal.Y + b.HalfLength;
-                    maxOnTriangle.Z = tMaxToTriangle * localNormal.Z + closestOnB.Z;
+                    maxOnTriangle.Y = tMaxToTriangle * localNormal.Y + closestOnB.Y;
+                    maxOnTriangle.Z = tMaxToTriangle * localNormal.Z + b.HalfLength; // TODO: Z-up
                     Vector3Wide.Subtract(maxOnTriangle, minOnTriangle, out var minToMax);
                     //We now have points on the surface of the triangle. Use them as a ray to intersect the triangle's edge planes.
                     var numeratorAB = (triangleA.X - minOnTriangle.X) * edgePlaneAB.X + (triangleA.Y - minOnTriangle.Y) * edgePlaneAB.Y + (triangleA.Z - minOnTriangle.Z) * edgePlaneAB.Z;
@@ -560,9 +560,9 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
                     //Ray cast back to the cylinder's side to compute the depth for the contact.
                     //t = dot(localNormal.X0Z, cylinderSideEdgeCenter - {entry, exit}) / dot(localNormal.X0Z, localNormal)
-                    var inverseDepthDenominator = Vector<float>.One / (localNormal.X * localNormal.X + localNormal.Z * localNormal.Z);
-                    depthTMin = Vector.ConditionalSelect(useSideTriangleFace, (localNormal.X * (closestOnB.X - localOffsetB0.X) + localNormal.Z * (closestOnB.Z - localOffsetB0.Z)) * inverseDepthDenominator, depthTMin);
-                    depthTMax = Vector.ConditionalSelect(useSideTriangleFace, (localNormal.X * (closestOnB.X - localOffsetB1.X) + localNormal.Z * (closestOnB.Z - localOffsetB1.Z)) * inverseDepthDenominator, depthTMax);
+                    var inverseDepthDenominator = Vector<float>.One / (localNormal.X * localNormal.X + localNormal.Y * localNormal.Y); // TODO: Z-up
+                    depthTMin = Vector.ConditionalSelect(useSideTriangleFace, (localNormal.X * (closestOnB.X - localOffsetB0.X) + localNormal.Y * (closestOnB.Y - localOffsetB0.Y)) * inverseDepthDenominator, depthTMin); // TODO: Z-up
+                    depthTMax = Vector.ConditionalSelect(useSideTriangleFace, (localNormal.X * (closestOnB.X - localOffsetB1.X) + localNormal.Y * (closestOnB.Y - localOffsetB1.Y)) * inverseDepthDenominator, depthTMax); // TODO: Z-up
                 }
                 manifold.FeatureId0 = Vector.ConditionalSelect(useSide, Vector<int>.Zero, manifold.FeatureId0);
                 manifold.FeatureId1 = Vector.ConditionalSelect(useSide, Vector<int>.One, manifold.FeatureId1);

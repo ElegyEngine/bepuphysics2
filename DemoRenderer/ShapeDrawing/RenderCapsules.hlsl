@@ -102,8 +102,8 @@ bool RayCastCapsule(float3 rayDirection, float3 capsulePosition, float4 capsuleO
 	//Move the origin up to the earliest possible impact time. This isn't necessary for math reasons, but it does help avoid some numerical problems.
 	float tOffset = 0;// max(0, -dot(o, d) - (halfLength + radius));
 	o += d * tOffset;
-	float2 oh = float2(o.x, o.z);
-	float2 dh = float2(d.x, d.z);
+	float2 oh = float2(o.x, o.y);
+	float2 dh = float2(d.x, d.y);
 	float a = dot(dh, dh);
 	float b = dot(oh, dh);
 	float radiusSquared = radius * radius;
@@ -115,7 +115,7 @@ bool RayCastCapsule(float3 rayDirection, float3 capsulePosition, float4 capsuleO
 		return false;
 	}
 
-	float sphereY;
+	float sphereZ;
 	if (a > 1.0e-8)
 	{
 		float discriminant = b * b - a * c;
@@ -127,18 +127,18 @@ bool RayCastCapsule(float3 rayDirection, float3 capsulePosition, float4 capsuleO
 		}
 		t = max(-tOffset, (-b - sqrt(discriminant)) / a);
 		float3 cylinderHitLocation = o + d * t;
-		if (cylinderHitLocation.y < -halfLength)
+		if (cylinderHitLocation.z < -halfLength)
 		{
-			sphereY = -halfLength;
+			sphereZ = -halfLength;
 		}
-		else if (cylinderHitLocation.y > halfLength)
+		else if (cylinderHitLocation.z > halfLength)
 		{
-			sphereY = halfLength;
+			sphereZ = halfLength;
 		}
 		else
 		{
 			//The hit is on the cylindrical portion of the capsule.
-			hitNormal = mul(float3(cylinderHitLocation.x, 0, cylinderHitLocation.z) / radius, orientationMatrix);
+			hitNormal = mul(float3(cylinderHitLocation.x, cylinderHitLocation.y, 0) / radius, orientationMatrix);
 			t = t + tOffset;
 			hitLocation = rayDirection * t;
 			return true;
@@ -147,9 +147,9 @@ bool RayCastCapsule(float3 rayDirection, float3 capsulePosition, float4 capsuleO
 	else
 	{
 		//The ray is parallel to the axis; the impact is on a spherical cap or nothing.
-		sphereY = d.y > 0 ? -halfLength : halfLength;
+		sphereZ = d.z > 0 ? -halfLength : halfLength;
 	}
-	float3 os = float3(o.x, o.y - sphereY, o.z);
+	float3 os = float3(o.x, o.y, o.z - sphereZ);
 	float capB = dot(os, d);
 	float capC = dot(os, os) - radiusSquared;
 
@@ -184,7 +184,7 @@ float GetSignedDistance(float3 direction, float3 position, float4 orientation, f
 	//Taking the derivative with respect to ta and doing some algebra (taking into account ||da|| == ||db|| == 1) to solve for ta yields:
 	//ta = (da * (b - a) + (db * (a - b)) * (da * db)) / (1 - ((da * db) * (da * db))    
 	//Treat the capsule's internal segment as 'a', and the eye ray as 'b'.
-	float3 da = TransformUnitY(orientation);
+	float3 da = TransformUnitZ(orientation);
 	float daOffsetB = -dot(da, position);
 	float dbOffsetB = -dot(direction, position);
 	float dadb = dot(da, direction);

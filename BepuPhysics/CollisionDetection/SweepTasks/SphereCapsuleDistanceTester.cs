@@ -10,10 +10,10 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
             out Vector<int> intersected, out Vector<float> distance, out Vector3Wide closestA, out Vector3Wide normal)
         {
             //The contact for a sphere-capsule pair is based on the closest point of the sphere center to the capsule internal line segment.
-            QuaternionWide.TransformUnitXY(orientationB, out var x, out var y);
-            Vector3Wide.Dot(y, offsetB, out var t);
+            QuaternionWide.TransformUnitXZ(orientationB, out var x, out var z); // TODO: Z-up
+            Vector3Wide.Dot(z, offsetB, out var t);
             t = Vector.Min(b.HalfLength, Vector.Max(-b.HalfLength, -t));
-            Vector3Wide.Scale(y, t, out var capsuleLocalClosestPointOnLineSegment);
+            Vector3Wide.Scale(z, t, out var capsuleLocalClosestPointOnLineSegment);
 
             Vector3Wide.Add(offsetB, capsuleLocalClosestPointOnLineSegment, out var sphereToInternalSegment);
             Vector3Wide.Length(sphereToInternalSegment, out var internalDistance);

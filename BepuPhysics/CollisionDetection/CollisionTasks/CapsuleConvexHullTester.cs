@@ -15,7 +15,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Matrix3x3Wide.CreateFromQuaternion(orientationA, out var capsuleOrientation);
             Matrix3x3Wide.CreateFromQuaternion(orientationB, out var hullOrientation);
             Matrix3x3Wide.MultiplyByTransposeWithoutOverlap(capsuleOrientation, hullOrientation, out var hullLocalCapsuleOrientation);
-            ref var localCapsuleAxis = ref hullLocalCapsuleOrientation.Y;
+            ref var localCapsuleAxis = ref hullLocalCapsuleOrientation.Z;  // TODO: Z-up
 
             Matrix3x3Wide.TransformByTransposedWithoutOverlap(offsetB, hullOrientation, out var localOffsetB);
             Vector3Wide.Negate(localOffsetB, out var localOffsetA);
@@ -23,7 +23,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Scale(localOffsetA, Vector<float>.One / centerDistance, out var initialNormal);
             var useInitialFallback = Vector.LessThan(centerDistance, new Vector<float>(1e-8f));
             initialNormal.X = Vector.ConditionalSelect(useInitialFallback, Vector<float>.Zero, initialNormal.X);
-            initialNormal.Y = Vector.ConditionalSelect(useInitialFallback, Vector<float>.One, initialNormal.Y);
+            initialNormal.Y = Vector.ConditionalSelect(useInitialFallback, Vector<float>.One, initialNormal.Y); // TODO: Z-up
             initialNormal.Z = Vector.ConditionalSelect(useInitialFallback, Vector<float>.Zero, initialNormal.Z);
             var hullSupportFinder = default(ConvexHullSupportFinder);
             var capsuleSupportFinder = default(CapsuleSupportFinder);
