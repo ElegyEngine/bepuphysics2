@@ -3,7 +3,6 @@
     <Description>Speedy real time physics simulation library.</Description>
     <Configurations>Debug;Release;ReleaseNoProfiling</Configurations>
     <PackageTags>physics;3d;rigid body;real time;simulation</PackageTags>
-    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
 
     <!-- CS1573 Parameter has no matching param tag in the XML comment for (but other parameters do) -->
     <!-- CS1591 Missing XML comment for publicly visible type or member -->

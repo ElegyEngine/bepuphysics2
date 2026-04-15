@@ -4,7 +4,6 @@
     <RootNamespace>BepuUtilities</RootNamespace>
     <Description>Supporting utilities library for BEPUphysics v2.</Description>
     <Configurations>Debug;Release</Configurations>
-    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
 
     <!-- CS1573 Parameter has no matching param tag in the XML comment for (but other parameters do) -->
     <!-- CS1591 Missing XML comment for publicly visible type or member -->
