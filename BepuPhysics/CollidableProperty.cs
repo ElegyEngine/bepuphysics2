@@ -105,6 +105,16 @@ namespace BepuPhysics
         }
 
         /// <summary>
+        /// Returns a span over all the body data.
+        /// </summary>
+        public Span<T> BodyData => bodyData;
+
+        /// <summary>
+        /// Returns a span over all the static data.
+        /// </summary>
+        public Span<T> StaticData => staticData;
+
+        /// <summary>
         /// Ensures there is space for a given body handle and returns a reference to the used memory.
         /// </summary>
         /// <param name="bodyHandle">Body handle to allocate for.</param>
